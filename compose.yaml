@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: 'postgres:latest'
+    restart: always
+    environment:
+      - 'POSTGRES_DB=asambleas'
+      - 'POSTGRES_PASSWORD=root'
+    ports:
+      - '5432:5432'
