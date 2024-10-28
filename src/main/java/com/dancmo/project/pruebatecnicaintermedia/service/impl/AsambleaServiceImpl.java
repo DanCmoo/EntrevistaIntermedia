@@ -4,12 +4,15 @@ import com.dancmo.project.pruebatecnicaintermedia.persistence.entity.Asamblea;
 import com.dancmo.project.pruebatecnicaintermedia.persistence.entity.Participante;
 import com.dancmo.project.pruebatecnicaintermedia.persistence.entity.Votacion;
 import com.dancmo.project.pruebatecnicaintermedia.persistence.enums.EstadoAsamblea;
+import com.dancmo.project.pruebatecnicaintermedia.persistence.enums.TipoParticipante;
 import com.dancmo.project.pruebatecnicaintermedia.presentation.model.AsambleaDTO;
+import com.dancmo.project.pruebatecnicaintermedia.presentation.model.ParticipanteDTO;
 import com.dancmo.project.pruebatecnicaintermedia.repository.AsambleaRepository;
 import com.dancmo.project.pruebatecnicaintermedia.repository.ParticipanteRepository;
 import com.dancmo.project.pruebatecnicaintermedia.service.AsambleaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -43,26 +46,49 @@ public class AsambleaServiceImpl implements AsambleaService {
     }
 
     @Override
-    public void actualizarEstadoAsamblea(UUID id, EstadoAsamblea estadoAsamblea) {
-        asambleaRepository.updateEstadoAsambleaById(id, estadoAsamblea);
+    @Transactional
+    public boolean actualizarEstadoAsamblea(UUID id, EstadoAsamblea estadoAsamblea) {
+        return asambleaRepository.updateEstadoAsambleaById(id, estadoAsamblea)!=0;
     }
 
     @Override
-    public void eliminarAsamblea(UUID id) {
-        asambleaRepository.deleteById(id);
+    @Transactional
+    public boolean eliminarAsamblea(UUID id) {
+        Asamblea asamblea = asambleaRepository.findById(id).orElse(null);
+        if(asamblea!=null) {
+            asamblea.getParticipantes().forEach(participante -> participante.getAsamblea().remove(asamblea));
+            asamblea.getParticipantes().clear();
+            asambleaRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 
     @Override
-    public void insertarParticipanteAsamblea(UUID id, Participante participante) {
+    public UUID crearParticipanteAsamblea(UUID id, ParticipanteDTO participanteDTO) {
         Asamblea asamblea = asambleaRepository.findById(id).orElse(null);
         if(asamblea != null) {
-            List<Participante> participantes = asamblea.getParticipantes();
-            participantes.add(participante);
-            asambleaRepository.updateParticipantesAsambleaById(id, participantes);
+            Participante participante = new Participante();
+            participante.setTipo(participanteDTO.tipoParticipante());
+            asamblea.addParticipante(participante);
+            participanteRepository.save(participante);
+            return participante.getId();
         }
-
-
+        return null;
     }
+
+    @Override
+    public boolean insertarParticipanteAsamblea(ParticipanteDTO participanteDTO) {
+        Asamblea asamblea = asambleaRepository.findById(participanteDTO.asambleaId()).orElse(null);
+        Participante participante = participanteRepository.findById(participanteDTO.id()).orElse(null);
+        if(asamblea != null && participante != null) {
+            asamblea.addParticipante(participante);
+            asambleaRepository.save(asamblea);
+            return true;
+        }
+        return false;
+    }
+
 
     @Override
     public List<Participante> listarParticipantes(UUID id) {

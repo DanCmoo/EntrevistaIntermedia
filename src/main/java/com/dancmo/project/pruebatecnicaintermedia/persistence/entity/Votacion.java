@@ -16,7 +16,7 @@ public class Votacion {
     @Column(name = "votacion_id")
     private UUID id;
     @OneToMany(mappedBy = "votacion", cascade = CascadeType.ALL)
-    private List<Propuesta> propuestas;
+    private List<Propuesta> propuestas = new ArrayList<>();
     @ManyToOne
     @JoinColumn(name = "asamblea_id")
     private Asamblea asamblea;
